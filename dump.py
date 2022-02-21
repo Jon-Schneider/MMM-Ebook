@@ -172,7 +172,7 @@ def rewritePostLinks(posts, postsInOrder):
 def rewriteImageLinks(posts):
     for post in posts.iteritems():
         for image in bs4.soup(post.text).findAll("img"):
-            print "Image: %(src)s" % image
+            print("Image: %(src)s" % image)
             image_url = urlparse.urljoin(url, image['src'])
             filename = image["src"].split("/")[-1]
             outpath = os.path.join(out_folder, filename)
