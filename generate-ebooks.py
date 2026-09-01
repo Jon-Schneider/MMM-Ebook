@@ -46,7 +46,14 @@ class RSSParser(object):
               
         url = "file://" + self.url if Path(self.url).exists() else self.url
         print("Trying to open and parse RSS feed @ <" + url + ">...")
-        doc = ET.parse(urlopen(url))
+
+        req = urllib.request.Request(
+            url, 
+            headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+        )
+        xmldata = urllib.request.urlopen(req)
+
+        doc = ET.parse(xmldata)
         self.root = doc.getroot()
 
         # Cache the page        
@@ -225,19 +232,27 @@ def rewriteImageLinks(posts):
             cachedImagePath = os.path.join(CACHED_MEDIA, imageFilename)
             if not Path(cachedImagePath).exists():
                 try:
-                    urllib.request.urlretrieve(imageurl, cachedImagePath)
+                    # Create a request object with a legitimate browser User-Agent
+                    req = urllib.request.Request(
+                        imageurl, 
+                        headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'}
+                    )
+
+                    # Open the URL and save the stream directly to your local file path
+                    with urllib.request.urlopen(req) as response, open(cachedImagePath, 'wb') as out_file:
+                        out_file.write(response.read())
 
                     # Resize images to a max width of 800px to save space
                     try:
-                        image = Image.open(cachedImagePath)
-                        image.LOAD_TRUNCATED_IMAGES = True
-                        if not image.width <= 600:
-                            aspectRatioChange = IMG_MAX_WIDTH_PX / image.width
-                            height = int(image.height * aspectRatioChange)
+                        imageFile = Image.open(cachedImagePath)
+                        imageFile.LOAD_TRUNCATED_IMAGES = True
+                        if not imageFile.width <= 600:
+                            aspectRatioChange = IMG_MAX_WIDTH_PX / imageFile.width
+                            height = int(imageFile.height * aspectRatioChange)
                             newSize = (IMG_MAX_WIDTH_PX, height)
-                            image = image.resize(newSize)
+                            imageFile = imageFile.resize(newSize)
 
-                        image.save(cachedImagePath, optimize=True, quality=85)
+                        imageFile.save(cachedImagePath, optimize=True, quality=85)
                     except IOError as e:
                         print(f'Failed to open image at path {cachedImagePath} for resize, caching at original resolution, error: {e}')
                 except Exception as e:
